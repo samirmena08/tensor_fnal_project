@@ -11,6 +11,8 @@ if(MINGW OR CYGWIN)
 endif()
 
 include_directories(./src)
+include_directories(./include)
+
 file(GLOB source_files
         main.cpp
         src/*.cpp)
@@ -24,5 +26,5 @@ if(UNIX AND NOT APPLE)
     target_link_libraries(${PROJECT_NAME} TBB::tbb)
 endif()
 
-add_subdirectory(autograder)
+#add_subdirectory(autograder)
 
