@@ -23,20 +23,24 @@ namespace utec {
             using size_ = size_t;
             using value_ = T;
 
-            //  Constructores
-            template <typename... Dims>
+            // Constructor desde std::array (forma segura y directa)
+            explicit Tensor(const shape_& dims) : dims_(dims) {
+                _initialize();
+            }
+
+            // Constructor variádico restringido: solo se activa si todos los args son convertibles a size_t y hay N de ellos
+            template <typename... Dims, typename = std::enable_if_t<(sizeof...(Dims) == N && (... && std::is_convertible_v<Dims, size_t>))>>
             explicit Tensor(Dims... dims) {
-                constexpr size_t count = sizeof...(Dims);
-                if (count != N) {
-                    throw std::invalid_argument("ERROR: Number of dimensions do not match with 2");
-                }
-                size_t vals[count] = { static_cast<size_t>(dims)... };
+                size_t vals[] = { static_cast<size_t>(dims)... };
                 for (size_t i = 0; i < N; ++i) dims_[i] = vals[i];
                 _initialize();
             }
 
-            explicit Tensor(const shape_& dims) : dims_(dims) {
-                _initialize();
+            // Constructores por copia y movimiento
+            Tensor() {
+                dims_.fill(0);
+                strides_.fill(0);
+                total_size_ = 0;
             }
 
             Tensor(const Tensor&) = default;
@@ -44,6 +48,7 @@ namespace utec {
             Tensor& operator=(const Tensor&) = default;
             Tensor& operator=(Tensor&&) noexcept = default;
             ~Tensor() = default;
+
 
             //  Acceso
             shape_ shape() const noexcept { return dims_; }
@@ -274,7 +279,31 @@ namespace utec {
             return R;
         }
 
-// Producto matricial (soporta batch)
+
+        template <typename T>
+        Tensor<T, 2> matrix_product(const Tensor<T, 2>& A, const Tensor<T, 2>& B) {
+            if (A.shape()[1] != B.shape()[0])
+                throw std::invalid_argument("Matrix dimensions are incompatible for multiplication");
+
+            size_t M = A.shape()[0];
+            size_t K = A.shape()[1];
+            size_t P = B.shape()[1];
+
+            Tensor<T, 2> R(std::array<size_t, 2>{M, P});
+
+            for (size_t i = 0; i < M; ++i) {
+                for (size_t j = 0; j < P; ++j) {
+                    T sum = T();
+                    for (size_t k = 0; k < K; ++k)
+                        sum += A(i, k) * B(k, j);
+                    R(i, j) = sum;
+                }
+            }
+
+            return R;
+        }
+
+        // Producto matricial (soporta batch)
         template <typename T, size_t N>
         Tensor<T,N> matrix_product(const Tensor<T,N>& A, const Tensor<T,N>& B) {
             static_assert(N >= 2, "ERROR: Number of dimensions do not match with 2");
