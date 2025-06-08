@@ -19,6 +19,8 @@ file(GLOB source_files
 
 add_executable(${PROJECT_NAME}
         ${source_files}
+        include/utec/agent/PongAgent.h
+        include/utec/agent/EnvGym.h
 )
 
 if(UNIX AND NOT APPLE)
